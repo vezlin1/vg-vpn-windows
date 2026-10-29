@@ -99,8 +99,8 @@ namespace Configs {
         int h2_max_concurrent_streams = 0;
         int quic_initial_packet_size = 0;
         bool quic_disable_path_mtu_discovery = false;
-        QString theme = "0";
-        int language = 0;
+        QString theme = "qdarkstyle";
+        int language = 4;
         QString font = "";
         int font_size = 0;
         QString mw_size = "";
@@ -153,12 +153,12 @@ namespace Configs {
         int sub_tls_version = 0;
         int sub_http_version = 0;
         // Sign encodes enabled (negative = off), magnitude = interval minutes (ignored if < 30).
-        int sub_auto_update = -30;
+        int sub_auto_update = 60;
         // Follow a server's profile-update-interval instead of sub_auto_update's minutes.
         bool sub_respect_server_interval = false;
         bool sub_clear = false;
         bool sub_show_change_popup = true;
-        bool sub_send_hwid = false;
+        bool sub_send_hwid = true;
         QString sub_custom_hwid_params = "";
         bool allow_stopping_active_profile = false;
 

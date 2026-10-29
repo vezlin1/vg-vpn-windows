@@ -29,7 +29,8 @@ namespace {
             // QIcon(path).isNull() is not a decode check: a PNG with a valid signature and a corrupt body passes it.
             if (const auto custom = QPixmap(QStringLiteral("icons/") + name + QStringLiteral(".png")); !custom.isNull()) return QIcon(custom);
         }
-        return QIcon(QStringLiteral(":/Throne/") + name + QStringLiteral(".png"));
+        return QIcon(name == QStringLiteral("Tun")
+            ? QStringLiteral(":/vgvpn/connected.png") : QStringLiteral(":/vgvpn/icon.png"));
     }
 } // namespace
 
@@ -54,7 +55,7 @@ QIcon Icon::GetTaskbarIcon(TrayIconStatus status) {
     const auto &settings = Configs::dataManager->settingsRepo;
     // The bundled icon only: a custom PNG has no room for the padding macOS adds in the dock.
     if (settings->use_custom_icons && !settings->follow_status_in_taskbar) {
-        return QIcon(QStringLiteral(":/Throne/Throne.png"));
+        return QIcon(QStringLiteral(":/vgvpn/icon.png"));
     }
     return GetTrayIcon(status);
 }

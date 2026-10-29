@@ -244,7 +244,7 @@ void MainWindow::handle_addsub(const QString &url, const QString &name) {
 }
 
 void MainWindow::import_or_handle_deeplink(const QString &text) {
-    if (const QString trimmed = text.trimmed(); trimmed.startsWith("throne://")) {
+    if (const QString trimmed = text.trimmed(); (trimmed.startsWith("throne://") || trimmed.startsWith("vgvpn://"))) {
         handle_deeplink_impl(trimmed);
         return;
     }

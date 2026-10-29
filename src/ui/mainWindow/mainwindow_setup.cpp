@@ -238,10 +238,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         [=, this] {
             QMutexLocker lock(&coreProcessMutex);
             core_process = new Configs_sys::CoreProcess(core_path, socketFullName, coreDebugMode);
-            if (Configs::dataManager->settingsRepo->remember_enable &&
-                Configs::dataManager->settingsRepo->remember_id >= 0) {
-                core_process->start_profile_when_core_is_up =
-                    Configs::dataManager->settingsRepo->remember_id;
+            // Only a one-shot handoff from the Connect button may resume after UAC.
+            const auto args = Configs::dataManager->settingsRepo->argv;
+            const int pending = args.indexOf("-vg-connect-profile");
+            if (Configs::IsAdmin() && args.contains("-flag_restart_tun_on") &&
+                pending >= 0 && pending + 1 < args.size()) {
+                bool valid = false;
+                const int id = args.at(pending + 1).toInt(&valid);
+                if (valid && id >= 0) core_process->start_profile_when_core_is_up = id;
+                auto &storedArgs = Configs::dataManager->settingsRepo->argv;
+                storedArgs.removeAt(pending + 1);
+                storedArgs.removeAt(pending);
             }
             core_process->Start();
         },
@@ -264,7 +271,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         testRunner->queueUrlTests(profileIDs, done);
     });
     ui->menu_start->setShortcuts({QKeySequence(Qt::Key_Return), QKeySequence(Qt::Key_Enter)});
-    connect(ui->menu_start, &QAction::triggered, this, [=,this]() { profile_start(); });
+    connect(ui->menu_start, &QAction::triggered, this, [this]() { activateVgVpnProfile(get_profile_to_start()); });
     connect(ui->menu_stop, &QAction::triggered, this, [=,this]() { profile_stop(false, false, true); });
     connect(ui->toolButton_startstop, &QAbstractButton::clicked, this, [=,this]() {
         if (running != nullptr) profile_stop(false, false, true);
@@ -307,7 +314,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         }
     }
 
-    software_name = "Throne";
+    software_name = "VG VPN";
     software_core_name = "sing-box";
     if (auto dashDir = QDir("dashboard"); !dashDir.exists() && QDir().mkdir("dashboard")) {
         if (auto dashFile = QFile(":/Throne/dashboard-notice.html"); dashFile.exists() && dashFile.open(QIODevice::ReadOnly))
@@ -1123,6 +1130,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         });
     }
 
+    setupVgVpnUi();
     if (!Configs::dataManager->settingsRepo->flag_tray) show();
     else if (tray->isVisible()) HideWindow(this);
     // Deferred: GetMessageBoxParent() falls back to the mainwindow global, which is only set once this constructor returns.

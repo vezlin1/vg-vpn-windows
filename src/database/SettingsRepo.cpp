@@ -12,6 +12,15 @@ namespace Configs {
         initMaps();
         createTables();
         loadAllSettings();
+        // VG VPN policy also applies when upgrading an existing installation.
+        // Connections remain an explicit user action; never resume a tunnel on launch.
+        sub_send_hwid = true;
+        sub_auto_update = 60;
+        sub_respect_server_interval = false;
+        remember_enable = false;
+        remember_tun = false;
+        remember_system_proxy = false;
+        windows_set_admin = false;
         // An empty secret disables authentication on the API service outright.
         if (core_box_api_secret.isEmpty()) {
             core_box_api_secret = QUuid::createUuid().toString(QUuid::WithoutBraces).remove('-');
@@ -351,11 +360,8 @@ namespace Configs {
 
     QString SettingsRepo::GetUserAgent(bool isDefault) const {
         if (user_agent.isEmpty() || isDefault) {
-            const QStringView version = SubStrBefore(QStringLiteral(NKR_VERSION), u"-");
-            if (version.contains(u'.')) {
-                return QStringLiteral("Throne/") + version.toString();
-            }
-            return QStringLiteral("Throne/1.0.0");
+            // Preserve subscription-server compatibility while identifying the fork.
+            return QStringLiteral("Throne/1.3.2 VG-VPN/") + QStringLiteral(NKR_VERSION);
         }
         return user_agent;
     }

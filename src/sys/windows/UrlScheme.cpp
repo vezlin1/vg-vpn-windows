@@ -10,7 +10,7 @@
 // In QSettings NativeFormat the value name "Default" is a key's unnamed (Default) value, and '/' separates subkeys.
 
 static const QString kClasses = "HKEY_CURRENT_USER\\Software\\Classes";
-static const QString kProgId = "Throne.Config";
+static const QString kProgId = "VGVPN.Config";
 
 static const QStringList kConfigExtensions = {".json", ".conf", ".yaml", ".yml"};
 // Claimed before 1.3; never registered again, only taken back.
@@ -26,7 +26,7 @@ static QString exeName() {
 
 // None of these is keyed by install path, so two portable copies write the same keys and the last launched one wins.
 static QStringList commandKeys(Association a) {
-    if (a == Association::Links) return {kClasses + "\\throne"};
+    if (a == Association::Links) return {kClasses + "\\vgvpn"};
     return {kClasses + "\\" + kProgId, kClasses + "\\Applications\\" + exeName()};
 }
 
@@ -34,7 +34,7 @@ static QStringList commandKeys(Association a) {
 bool UrlScheme_AutoRegisterByDefault() {
     const QString appDir = QDir(QApplication::applicationDirPath()).canonicalPath();
     for (const QString &root : {QStringLiteral("HKEY_CURRENT_USER"), QStringLiteral("HKEY_LOCAL_MACHINE")}) {
-        const QString installPath = QSettings(root + "\\Software\\Throne", QSettings::NativeFormat).value("InstallPath").toString();
+        const QString installPath = QSettings(root + "\\Software\\VG VPN", QSettings::NativeFormat).value("InstallPath").toString();
         if (!installPath.isEmpty() && QDir(installPath).canonicalPath().compare(appDir, Qt::CaseInsensitive) == 0) return true;
     }
     return false;
@@ -54,15 +54,15 @@ bool UrlScheme_IsCurrent(Association a) {
 }
 
 static void applyLinks(const QString &command) {
-    QSettings scheme(kClasses + "\\throne", QSettings::NativeFormat);
-    scheme.setValue("Default", "URL:Throne Protocol");
+    QSettings scheme(kClasses + "\\vgvpn", QSettings::NativeFormat);
+    scheme.setValue("Default", "URL:VG VPN Protocol");
     scheme.setValue("URL Protocol", "");
     scheme.setValue("shell/open/command/Default", command);
 }
 
 static void applyConfigFiles(const QString &command) {
     QSettings progId(kClasses + "\\" + kProgId, QSettings::NativeFormat);
-    progId.setValue("Default", "Throne profile");
+    progId.setValue("Default", "VG VPN profile");
     progId.setValue("DefaultIcon/Default", QDir::toNativeSeparators(QApplication::applicationFilePath()) + ",0");
     progId.setValue("shell/open/command/Default", command);
 
@@ -76,7 +76,7 @@ static void applyConfigFiles(const QString &command) {
 
     // Applications\<exe> is what "Open with > Choose another app" reads, the only route for an extensionless file.
     QSettings app(kClasses + "\\Applications\\" + exeName(), QSettings::NativeFormat);
-    app.setValue("FriendlyAppName", "Throne");
+    app.setValue("FriendlyAppName", "VG VPN");
     app.setValue("shell/open/command/Default", command);
     app.remove("SupportedTypes");
     for (const QString &ext : kConfigExtensions) {
@@ -96,7 +96,7 @@ void UrlScheme_Remove(Association a) {
     // Removing from the parent key drops the whole subtree; QSettings::remove("") would only empty it and leave the node behind.
     QSettings classes(kClasses, QSettings::NativeFormat);
     if (a == Association::Links) {
-        classes.remove("throne");
+        classes.remove("vgvpn");
     } else {
         classes.remove(kProgId);
         classes.remove("Applications/" + exeName());

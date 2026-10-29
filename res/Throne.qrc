@@ -1,4 +1,9 @@
 <RCC>
+    <qresource prefix="/vgvpn">
+        <file alias="icon.png">vgvpn/icon.png</file>
+        <file alias="connected.png">vgvpn/icon.png</file>
+        <file alias="wordmark.svg">vgvpn/wordmark.svg</file>
+    </qresource>
     <qresource prefix="/">
         <file alias="icon/b-internet-web-browser.png">icon/internet-web-browser.png</file>
         <file alias="icon/b-system-run.png">icon/system-run.png</file>

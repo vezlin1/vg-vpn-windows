@@ -192,6 +192,8 @@ void MainWindow::on_menu_exit_triggered() {
 
         if (exit_reason == ExitReason::RestartWithTun || exit_reason == ExitReason::RestartWithDns) {
             if (exit_reason == ExitReason::RestartWithTun) arguments << "-flag_restart_tun_on";
+            if (exit_reason == ExitReason::RestartWithTun && m_vgRequestedProfileId >= 0)
+                arguments << "-vg-connect-profile" << QString::number(m_vgRequestedProfileId);
             if (exit_reason == ExitReason::RestartWithDns) arguments << "-flag_restart_dns_set";
 #ifdef Q_OS_WIN
             WinCommander::runProcessElevated(program, arguments, "", 1, false);
@@ -251,7 +253,9 @@ bool MainWindow::get_elevated_permissions(ExitReason reason) {
     }
 #endif
 #ifdef Q_OS_WIN
-    auto n = QMessageBox::warning(GetMessageBoxParent(), software_name, tr("Please run Throne as admin"), QMessageBox::Yes | QMessageBox::No);
+    auto n = QMessageBox::question(GetMessageBoxParent(), software_name,
+        QStringLiteral("Для подключения VPN нужны права администратора.\n\nПродолжить и подключить выбранный сервер?"),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
     if (n == QMessageBox::Yes) {
         this->exit_reason = reason;
         on_menu_exit_triggered();
@@ -528,122 +532,8 @@ void MainWindow::OpenDashboard() {
 }
 
 void MainWindow::CheckUpdate() {
-    QString search;
-#ifdef Q_OS_WIN
-#  ifdef Q_PROCESSOR_ARM_64
-    search = "windows-arm64";
-#  else
-#    ifdef Q_OS_WIN64
-        if (WinVersion::IsBuildNumGreaterOrEqual(BuildNumber::Windows_10_1809))
-            search = "windows64";
-        else
-	        search = "windowslegacy64";
-#    else
-	    search = "windows32";
-#    endif
-#  endif
-#endif
-#ifdef Q_OS_LINUX
-#  ifdef Q_PROCESSOR_X86_64
-    search = "linux-amd64";
-#  else
-    search = "linux-arm64";
-#  endif
-#endif
-#ifdef Q_OS_MACOS
-#  ifdef Q_PROCESSOR_X86_64
-	search = "macos-amd64";
-#  else
-	search = "macos-arm64";
-#  endif
-#endif
-    if (search.isEmpty()) {
-        runOnUiThread([=,this] {
-            MessageBoxWarning(QObject::tr("Update"), QObject::tr("Not official support platform"));
-        });
-        return;
-    }
-
-    // Releases carry no checksum or signature, so TLS is all that vouches for the download URL and the archive.
-    HttpGetOptions options;
-    options.strictTls = true;
-    auto resp = NetworkRequestHelper::HttpGet("https://api.github.com/repos/throneproj/Throne/releases", options);
-    if (!resp.error.isEmpty()) {
-        runOnUiThread([=,this] {
-            MessageBoxWarning(QObject::tr("Update"), QObject::tr("Requesting update error: %1").arg(resp.error + "\n" + resp.data));
-        });
-        return;
-    }
-
-    QString assets_name, release_download_url, release_url, release_note, note_pre_release;
-    bool exitFlag = false;
-    QJsonArray array = QString2QJsonArray(resp.data);
-    for (const QJsonValue value : array) {
-        QJsonObject release = value.toObject();
-        if (release["prerelease"].toBool() && !Configs::dataManager->settingsRepo->allow_beta_update) continue;
-        for (const QJsonValue asset : release["assets"].toArray()) {
-            if (asset["name"].toString().contains(search) && asset["name"].toString().section('.', -1) == QString("zip")) {
-                note_pre_release = release["prerelease"].toBool() ? " (Pre-release)" : "";
-                release_url = release["html_url"].toString();
-                release_note = release["body"].toString();
-                assets_name = asset["name"].toString();
-                release_download_url = asset["browser_download_url"].toString();
-                exitFlag = true;
-                break;
-            }
-        }
-        if (exitFlag) break;
-    }
-
-    if (release_download_url.isEmpty() || !isNewer(assets_name)) {
-        runOnUiThread([=,this] {
-            MessageBoxInfo(QObject::tr("Update"), QObject::tr("No update"));
-        });
-        return;
-    }
-
-    runOnUiThread([=,this] {
-        auto allow_updater = !Configs::dataManager->settingsRepo->flag_use_appdata;
-        QMessageBox box(QMessageBox::Question, QObject::tr("Update") + note_pre_release,
-                        QObject::tr("Update found: %1\nRelease note:\n%2").arg(assets_name, release_note));
-        QAbstractButton *btn1 = nullptr;
-        if (allow_updater) {
-            btn1 = box.addButton(QObject::tr("Update"), QMessageBox::AcceptRole);
-        }
-        QAbstractButton *btn2 = box.addButton(QObject::tr("Open in browser"), QMessageBox::AcceptRole);
-        box.addButton(QObject::tr("Close"), QMessageBox::RejectRole);
-        box.exec();
-        if (btn1 == box.clickedButton() && allow_updater) {
-            runOnNewThread([=,this] {
-                if (!mu_download_update.tryLock()) {
-                    runOnUiThread([=,this](){
-                        MessageBoxWarning(tr("Cannot start"), tr("Last download request has not finished yet"));
-                    });
-                    return;
-                }
-                QString errors;
-                if (!release_download_url.isEmpty()) {
-                    auto res = NetworkRequestHelper::DownloadAsset(release_download_url, "Throne.zip", false, true);
-                    if (!res.isEmpty()) {
-                        errors += res;
-                    }
-                }
-                mu_download_update.unlock();
-                runOnUiThread([=,this] {
-                    if (errors.isEmpty()) {
-                        auto q = QMessageBox::question(nullptr, QObject::tr("Update"),
-                                                       QObject::tr("Update is ready, restart to install?"));
-                        if (q == QMessageBox::StandardButton::Yes) {
-                            this->exit_reason = ExitReason::RunUpdater;
-                            on_menu_exit_triggered();
-                        }
-                    } else {
-                        MessageBoxWarning(tr("Failed to download update assets"), errors);
-                    }
-                });
-            });
-        } else if (btn2 == box.clickedButton()) {
-            QDesktopServices::openUrl(QUrl(release_url));
-        }
-    });
+    // VG VPN releases have their own executable and must never be replaced by Throne.
+    QMetaObject::invokeMethod(this, [] {
+        QDesktopServices::openUrl(QUrl("https://github.com/vezlin1/vg-vpn-windows/releases"));
+    }, Qt::QueuedConnection);
 }

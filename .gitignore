@@ -88,3 +88,10 @@ out
 /libs
 srslist.h
 .claude
+
+# VG VPN local toolchain, runtime packages and review captures.
+/.vg-build/
+/dist/
+/core/gen/*.pb.go
+/core/gen/*_grpc.pb.go
+!/res/vgvpn/srslist.h

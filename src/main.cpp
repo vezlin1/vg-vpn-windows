@@ -52,7 +52,7 @@ protected:
         if (event->type() == QEvent::FileOpen) {
             const auto openEvent = static_cast<QFileOpenEvent *>(event);
             const QString url = openEvent->url().toString();
-            if (url.startsWith("throne://")) {
+            if ((url.startsWith("throne://") || url.startsWith("vgvpn://"))) {
                 Deeplink_Submit(url);
                 return true;
             }
@@ -204,7 +204,7 @@ namespace {
     }
 }
 
-#define LOCAL_SERVER_PREFIX "throne-"
+#define LOCAL_SERVER_PREFIX "vgvpn-"
 
 int main(int argc, char* argv[]) {
     Logging::InstallQtMessageHandler();
@@ -264,7 +264,7 @@ int main(int argc, char* argv[]) {
 #ifdef NKR_CPP_USE_APPDATA
     useAppdata = true;
 #endif
-    QApplication::setApplicationName("Throne");
+    QApplication::setApplicationName("VG VPN");
     if(useAppdata) {
         if (!appdataDir.isEmpty()) {
             wd.setPath(appdataDir);
@@ -397,7 +397,7 @@ int main(int argc, char* argv[]) {
         // One url per line; the tail carries no trailing newline, so it is only flushed on disconnect.
         auto pending = std::make_shared<QByteArray>();
         auto handleLine = [](const QString &line) {
-            if (line.startsWith("throne://")) {
+            if ((line.startsWith("throne://") || line.startsWith("vgvpn://"))) {
                 Deeplink_Submit(line);
             } else if (line.startsWith("file://")) {
                 LaunchFiles_Submit({QUrl(line).toLocalFile()});

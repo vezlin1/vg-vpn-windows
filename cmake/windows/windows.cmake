@@ -4,13 +4,13 @@ set(PLATFORM_LIBRARIES wininet wsock32 ws2_32 user32 rasapi32 iphlpapi ntdll wbe
 include(cmake/windows/generate_product_version.cmake)
 generate_product_version(
         QV2RAY_RC
-        ICON "${CMAKE_SOURCE_DIR}/res/Throne.ico"
-        NAME "Throne"
-        BUNDLE "Throne"
-        COMPANY_NAME "Throne"
-        COMPANY_COPYRIGHT "Throne"
-        FILE_DESCRIPTION "Throne"
-        ORIGINAL_FILENAME "Throne.exe"
+        ICON "${CMAKE_SOURCE_DIR}/res/vgvpn/VGVPN.ico"
+        NAME "VG VPN"
+        BUNDLE "VG VPN"
+        COMPANY_NAME "VG VPN"
+        COMPANY_COPYRIGHT "VG VPN contributors; based on Throne (GPL-3.0)"
+        FILE_DESCRIPTION "VG VPN — VPN-клиент для Windows"
+        ORIGINAL_FILENAME "VGVPN.exe"
         VERSION_MAJOR ${NKR_VERSION_MAJOR}
         VERSION_MINOR ${NKR_VERSION_MINOR}
         VERSION_PATCH ${NKR_VERSION_PATCH}

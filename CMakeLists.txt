@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.20)
 
 project(Throne VERSION 0.1)
 
+# Localized MSVC diagnostics may be decoded incorrectly by CMake's compiler probe.
+# The Windows builder detects the real /showIncludes prefix with PowerShell.
+if(MSVC AND DEFINED VG_MSVC_SHOWINCLUDES_PREFIX)
+    set(CMAKE_CL_SHOWINCLUDES_PREFIX "${VG_MSVC_SHOWINCLUDES_PREFIX}")
+endif()
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -179,6 +185,7 @@ set(PROJECT_SOURCES
         src/ui/mainWindow/mainwindow_events.cpp
         src/ui/mainWindow/mainwindow_groups.cpp
         src/ui/mainWindow/mainwindow_view.cpp
+        src/ui/mainWindow/mainwindow_vgvpn.cpp
         src/ui/mainWindow/mainwindow_connections.cpp
         src/ui/mainWindow/mainwindow_profiles.cpp
         src/ui/mainWindow/mainwindow_deeplink.cpp
@@ -609,6 +616,7 @@ if (APPLE)
 endif ()
 
 set_target_properties(Throne PROPERTIES
+        OUTPUT_NAME "VGVPN"
         MACOSX_BUNDLE_ICON_FILE "Throne.icns"
         RESOURCE ${MACOSX_ICON}
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/res/MacOSXBundleInfo.plist
@@ -619,6 +627,7 @@ set_target_properties(Throne PROPERTIES
 
 if (WIN32 AND MSVC)
     set_target_properties(Throne PROPERTIES UNITY_BUILD ON)
+    target_link_options(Throne PRIVATE /MAP)
 endif ()
 set_property(SOURCE "3rdparty/SQLiteCpp/src/sqlite3.c" PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
 

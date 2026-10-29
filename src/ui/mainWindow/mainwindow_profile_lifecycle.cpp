@@ -203,6 +203,13 @@ void MainWindow::profile_start(int _id) {
     const auto group = Configs::dataManager->groupsRepo->GetGroup(ent->gid);
     if (group == nullptr || group->archive) return;
 
+    // Every explicit start entry point (row button, Enter, tray) uses TUN.
+    // Save the chosen id only in this process for the one-shot UAC handoff.
+    m_vgRequestedProfileId = ent->id;
+    if (!Configs::IsAdmin() && !get_elevated_permissions()) return;
+    Configs::dataManager->settingsRepo->spmode_vpn = true;
+    if (Configs::dataManager->settingsRepo->spmode_system_proxy) set_spmode_system_proxy(false);
+
     // Ranking must run before the config is built and it blocks, so hop off the UI thread.
     if (ent->type == "autoselector" && !auto_selector_ranked) {
         const auto plan = Configs::PlanAutoSelector(ent);
@@ -488,6 +495,10 @@ void MainWindow::profile_stop(bool crash, bool block, bool manual) {
             clearRestartNeeded();
             // profile_start() stops the old run first, so only a stop outside a restart is the user's.
             const bool restartingForAuth = manual && id == m_vpnAuthRestartID;
+            if (manual && !restartingForAuth && !m_profileConnecting) {
+                Configs::dataManager->settingsRepo->spmode_vpn = false;
+                Configs::dataManager->settingsRepo->remember_tun = false;
+            }
             m_vpnAuthRestartID = -1;
             if (manual && !restartingForAuth) clear_vpn_credential_overrides();
             stop_vpn_challenge_poll();

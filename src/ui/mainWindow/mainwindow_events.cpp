@@ -4,6 +4,7 @@
 #include <QCursor>
 #include <QLineEdit>
 #include <QMimeData>
+#include <QScopedValueRollback>
 #include <QTimer>
 
 #include "include/ui/widget/TrayOtpCodes.hpp"
@@ -33,8 +34,10 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 
 void MainWindow::changeEvent(QEvent *event) {
     const QEvent::Type type = event->type();
+    static thread_local bool refreshingFonts = false;
 
-    if (type == QEvent::FontChange) {
+    if (type == QEvent::FontChange && !refreshingFonts) {
+        const QScopedValueRollback<bool> guard(refreshingFonts, true);
         // QStyleSheetStyle caches font metrics and ignores FontChange; toggling the stylesheet repolishes.
         auto refreshStylesheetCache = [](QWidget *w) {
             const QString ss = w->styleSheet();

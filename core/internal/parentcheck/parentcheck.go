@@ -28,7 +28,8 @@ func CheckParentProcess() {
 	parentBase := filepath.Base(parentPath)
 
 	if runtime.GOOS == "windows" {
-		if !strings.EqualFold(parentDir, selfDir) || !strings.EqualFold(parentBase, "Throne.exe") {
+		// VG VPN keeps the original same-directory parent check with its own GUI name.
+		if !strings.EqualFold(parentDir, selfDir) || !strings.EqualFold(parentBase, "VGVPN.exe") {
 			log.Fatalf("parent check failed: unexpected parent %q, selfPath is %q", parentPath, selfPath)
 		}
 		return

@@ -394,13 +394,13 @@ static QString g_pendingDeeplink;
 
 QString Deeplink_ExtractFromArgs(const QStringList &args) {
     for (const auto &arg : args) {
-        if (arg.startsWith("throne://")) return arg;
+        if (arg.startsWith("throne://") || arg.startsWith("vgvpn://")) return arg;
     }
     return {};
 }
 
 void Deeplink_Submit(const QString &url) {
-    if (url.isEmpty() || !url.startsWith("throne://")) return;
+    if (url.isEmpty() || (!url.startsWith("throne://") && !url.startsWith("vgvpn://"))) return;
     if (MW_handle_deeplink) {
         MW_handle_deeplink(url);
     } else {
@@ -426,7 +426,7 @@ QStringList LaunchFiles_ExtractFromArgs(const QStringList &args, const QDir &lau
             if (arg == "-appdata") i++;
             continue;
         }
-        if (arg.startsWith("throne://")) continue;
+        if (arg.startsWith("throne://") || arg.startsWith("vgvpn://")) continue;
 
         // A relative path resolves against the directory we were launched from, which main() abandons early.
         auto path = arg.startsWith("file://") ? QUrl(arg).toLocalFile() : arg;

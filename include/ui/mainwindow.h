@@ -21,6 +21,8 @@
 #include "include/ui/widget/TrayIcon.hpp"
 #include <QPointer>
 #include <QTimer>
+#include <QLabel>
+#include <QPushButton>
 #include <QElapsedTimer>
 #include <QQueue>
 #include <QWaitCondition>
@@ -127,6 +129,11 @@ public:
     void update_traffic_graph(int proxyDl, int proxyUp, int directDl, int directUp);
 
     void profile_start(int _id = -1);
+
+    void setupVgVpnUi();
+    void refreshVgVpnUi();
+    void addVgVpnSubscription();
+    void activateVgVpnProfile(int id);
 
     void profile_stop(bool crash = false, bool block = false, bool manual = false);
 
@@ -496,6 +503,12 @@ private:
     void showHijackDeprecationNotice();
 
     void CheckUpdate();
+
+    int m_vgRequestedProfileId = Configs::NoProfileId;
+    class QLabel *m_vgStatus = nullptr;
+    class QLabel *m_vgEmptyState = nullptr;
+    class QPushButton *m_vgAddSubscription = nullptr;
+    bool m_vgTechnicalColumns = false;
 
     void OpenDashboard();
 

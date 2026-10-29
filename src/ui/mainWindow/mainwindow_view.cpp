@@ -4,6 +4,8 @@
 #include <QApplication>
 #include <QHeaderView>
 #include <QScrollBar>
+#include <QScopedValueRollback>
+#include <QSignalBlocker>
 #include <QTimer>
 #include <QToolButton>
 
@@ -29,6 +31,7 @@ bool MainWindow::usesTightLabels() const {
 }
 
 void MainWindow::applyTopBarMetrics() {
+    if (m_vgAddSubscription != nullptr) return;
     const QList<QToolButton*> menuButtons = {
         ui->toolButton_program, ui->toolButton_preferences, ui->toolButton_testing,
         ui->toolButton_routing, ui->toolButton_tools,
@@ -236,6 +239,7 @@ void MainWindow::refresh_status(const QString &traffic_update) {
     icon_status = icon_status_new;
 
     refresh_startstop_button();
+    refreshVgVpnUi();
 }
 
 void MainWindow::refresh_startstop_button() {
@@ -279,6 +283,20 @@ void MainWindow::update_traffic_graph(int proxyDl, int proxyUp, int directDl, in
 void MainWindow::refresh_proxy_list_column_size() {
     const auto group = Configs::dataManager->groupsRepo->CurrentGroup();
     if (!group || !ui->profilesTableView->isVisible()) return;
+
+    if (m_vgAddSubscription != nullptr) {
+        if (m_adjustingColumns) return;
+        const QScopedValueRollback<bool> adjusting(m_adjustingColumns, true);
+        auto *header = ui->profilesTableView->horizontalHeader();
+        const QSignalBlocker blocked(header);
+        for (const int col : {ProfilesTableModel::ColType, ProfilesTableModel::ColAddress, ProfilesTableModel::ColTestResult})
+            ui->profilesTableView->setColumnHidden(col, !m_vgTechnicalColumns);
+        header->setSectionResizeMode(ProfilesTableModel::ColName, QHeaderView::Stretch);
+        header->setSectionResizeMode(ProfilesTableModel::ColTraffic, QHeaderView::Fixed);
+        header->resizeSection(ProfilesTableModel::ColTraffic, 192);
+        refreshVgVpnUi();
+        return;
+    }
 
     auto *hHeader = dynamic_cast<ProfilesTableFilterHeader*>(ui->profilesTableView->horizontalHeader());
     QTimer::singleShot(0, ui->profilesTableView, [=, this]() {

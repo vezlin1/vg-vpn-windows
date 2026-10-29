@@ -98,6 +98,11 @@ QVariant ProfilesTableModel::data(const QModelIndex &index, int role) const {
     const bool isRunning = (profile->id == startedId);
     QColor linkColor = isRunning ? QApplication::palette().link().color() : QColor();
 
+    if (index.column() == ColTraffic && (role == Qt::AccessibleTextRole || role == Qt::AccessibleDescriptionRole)) {
+        const QString name = profile->outbound ? profile->outbound->name : QString();
+        return (isRunning ? QStringLiteral("Отключиться от сервера %1") : QStringLiteral("Подключиться к серверу %1")).arg(name);
+    }
+
     if (role == Qt::DisplayRole) {
         switch (index.column()) {
         case ColType: {
@@ -140,9 +145,9 @@ QVariant ProfilesTableModel::headerData(int section, Qt::Orientation orientation
         switch (section) {
         case ColType: return tr("Type");
         case ColAddress: return tr("Address");
-        case ColName: return tr("Name");
+        case ColName: return QStringLiteral("Сервер");
         case ColTestResult: return tr("Test Result");
-        case ColTraffic: return tr("Traffic");
+        case ColTraffic: return QStringLiteral("Подключение");
         default: return {};
         }
     }
