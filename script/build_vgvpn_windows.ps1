@@ -102,7 +102,7 @@ $manifest = [ordered]@{
     sourceModified = [bool](& git -C $repo status --porcelain --untracked-files=normal)
     files = @{}
 }
-Get-ChildItem -LiteralPath $dist -File | ForEach-Object { $manifest.files[$_.Name] = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
+Get-ChildItem -LiteralPath $dist -File | Where-Object Name -ne 'build-manifest.json' | ForEach-Object { $manifest.files[$_.Name] = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
 $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $dist 'build-manifest.json') -Encoding utf8
 $zip = Join-Path $repo "dist/VG-VPN-$Version-windows64.zip"
 Compress-Archive -LiteralPath $dist -DestinationPath $zip -Force
