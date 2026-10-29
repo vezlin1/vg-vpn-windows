@@ -3,21 +3,18 @@
 
 #include <QApplication>
 #include <QClipboard>
-#include <QDesktopServices>
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QKeyEvent>
-#include <QMenu>
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
 #include <QStyledItemDelegate>
 #include <QStyleOptionViewItem>
-#include <QToolButton>
+#include <QSvgRenderer>
 #include <QUrl>
 
-#include "NkrVersion.h"
 #include "include/configs/sub/GroupUpdater.hpp"
 #include "include/database/GroupsRepo.h"
 #include "include/database/ProfilesRepo.h"
@@ -124,12 +121,38 @@ void MainWindow::setupVgVpnUi() {
              ui->data_view, ui->menubar};
     for (QWidget *widget : oldToolbar) widget->hide();
 
-    auto *brand = new QLabel(this);
+    auto *brand = new QWidget(this);
     brand->setObjectName("vgBrand");
-    brand->setText(QStringLiteral("<img src=\":/vgvpn/icon.png\" width=\"48\" height=\"48\">&nbsp; <b>VG VPN</b>"));
     brand->setAccessibleName(QStringLiteral("VG VPN"));
-    brand->setTextFormat(Qt::RichText);
     brand->setFixedHeight(68);
+    auto *brandLayout = new QHBoxLayout(brand);
+    brandLayout->setContentsMargins(0, 0, 0, 0);
+    brandLayout->setSpacing(8);
+    brandLayout->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    auto *brandIcon = new QLabel(brand);
+    brandIcon->setObjectName("vgBrandIcon");
+    brandIcon->setFixedSize(52, 52);
+    brandIcon->setAlignment(Qt::AlignCenter);
+    const qreal brandDpr = devicePixelRatioF();
+    QPixmap icon = QPixmap(QStringLiteral(":/vgvpn/icon.png")).scaled(
+        QSize(qRound(52 * brandDpr), qRound(52 * brandDpr)), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    icon.setDevicePixelRatio(brandDpr);
+    brandIcon->setPixmap(icon);
+    auto *brandWordmark = new QLabel(brand);
+    brandWordmark->setObjectName("vgBrandWordmark");
+    brandWordmark->setAccessibleName(QStringLiteral("VG VPN"));
+    brandWordmark->setFixedSize(196, 52);
+    brandWordmark->setAlignment(Qt::AlignCenter);
+    QPixmap wordmark(QSize(qRound(196 * brandDpr), qRound(52 * brandDpr)));
+    wordmark.setDevicePixelRatio(brandDpr);
+    wordmark.fill(Qt::transparent);
+    QSvgRenderer wordmarkRenderer(QStringLiteral(":/vgvpn/wordmark.svg"));
+    QPainter wordmarkPainter(&wordmark);
+    wordmarkRenderer.render(&wordmarkPainter, QRectF(0, 0, 196, 52));
+    wordmarkPainter.end();
+    brandWordmark->setPixmap(wordmark);
+    brandLayout->addWidget(brandIcon, 0, Qt::AlignVCenter);
+    brandLayout->addWidget(brandWordmark, 0, Qt::AlignVCenter);
     ui->horizontalLayout_2->insertWidget(0, brand);
     ui->horizontalLayout_2->insertStretch(1);
     m_vgAddSubscription = new QPushButton(QStringLiteral("Добавить подписку"), this);
@@ -158,6 +181,13 @@ void MainWindow::setupVgVpnUi() {
     ui->profilesTableView->setShowGrid(false);
     ui->profilesTableView->setAlternatingRowColors(false);
     ui->profilesTableView->setMouseTracking(true);
+    auto *profileHeader = ui->profilesTableView->horizontalHeader();
+    profileHeader->setSectionsClickable(false);
+    profileHeader->setSectionsMovable(false);
+    profileHeader->setSortIndicatorShown(false);
+    profileHeader->setHighlightSections(false);
+    profileHeader->setContextMenuPolicy(Qt::PreventContextMenu);
+    disconnect(profileHeader, &QHeaderView::sectionClicked, this, nullptr);
     if (auto *filters = ui->tabWidget->cornerWidget(Qt::TopRightCorner)) filters->hide();
     simplifySubscriptionTabs(ui->tabWidget);
     ui->profilesTableView->setItemDelegateForColumn(ProfilesTableModel::ColTraffic, new VgConnectDelegate(
@@ -181,63 +211,20 @@ void MainWindow::setupVgVpnUi() {
     m_vgStatus = new QLabel(this);
     m_vgStatus->setObjectName("vgStatus");
     ui->horizontalLayout->insertWidget(0, m_vgStatus, 1);
-    auto *advanced = new QToolButton(this);
-    advanced->setObjectName("vgAdvanced");
-    advanced->setText(QStringLiteral("Дополнительно"));
-    advanced->setMinimumHeight(42);
-    advanced->setPopupMode(QToolButton::InstantPopup);
-    auto *menu = new QMenu(advanced);
-    menu->addAction(QStringLiteral("Обновить подписки сейчас"), this, [] { Subscription::updater()->RefreshAll(); });
-    auto *diagnostics = menu->addAction(QStringLiteral("Показать диагностику"));
-    diagnostics->setCheckable(true);
-    connect(diagnostics, &QAction::toggled, this, [this](bool shown) {
-        ui->splitter->widget(1)->setVisible(shown);
-        ui->splitter->setVisible(shown || profilesTableModel->rowCount() > 0);
-        if (shown) ui->splitter->setSizes({380, 220});
-    });
-    auto *columns = menu->addAction(QStringLiteral("Технические столбцы"));
-    columns->setCheckable(true);
-    connect(columns, &QAction::toggled, this, [this](bool shown) {
-        m_vgTechnicalColumns = shown;
-        refresh_proxy_list_column_size();
-    });
-    menu->addSeparator();
-    menu->addMenu(ui->menu_preferences);
-    menu->addMenu(ui->menuTesting);
-    menu->addMenu(ui->menuRouting_Menu);
-    menu->addMenu(ui->menuTools);
-    menu->addMenu(ui->menu_program);
-    menu->addSeparator();
-    menu->addAction(QStringLiteral("Поддержка VG VPN"), this, [] { QDesktopServices::openUrl(QUrl("https://vgvpn.site/support")); });
-    menu->addAction(QStringLiteral("О программе"), this, [this] {
-        QMessageBox::about(this, QStringLiteral("VG VPN"), QStringLiteral(
-            "<h2>VG VPN %1</h2><p>VPN-клиент для Windows на базе Throne 1.3.2.</p>"
-            "<p>HWID включён. Подписки обновляются раз в час.<br>TUN включается при подключении.</p>"
-            "<p>Изменения VG VPN: 2026. Лицензия GNU GPL v3.</p>"
-            "<p><a href=\"https://github.com/vezlin1/vg-vpn-windows\">Исходный код VG VPN</a><br>"
-            "<a href=\"https://github.com/throneproj/Throne\">Проект Throne и его авторы</a></p>").arg(NKR_VERSION));
-    });
-    menu->addSeparator();
-    menu->addAction(ui->menu_exit);
-    advanced->setMenu(menu);
-    ui->horizontalLayout->addWidget(advanced);
     ui->actionRemember_last_proxy->setVisible(false);
     ui->actionRemember_last_proxy->setEnabled(false);
     ui->menu_start->setText(QStringLiteral("Подключиться / Отключиться"));
 
     setStyleSheet(QStringLiteral(
         "QMainWindow#vgVpnWindow, #centralwidget { background:#0b0b18; color:#ffffff; }"
-        "QLabel#vgBrand, QLabel#vgEmptyState, QLabel#vgStatus { background:transparent; border:0; }"
-        "QLabel#vgBrand { font-size:26px; color:#ffffff; }"
+        "QWidget#vgBrand, QLabel#vgBrandIcon, QLabel#vgBrandWordmark, QLabel#vgEmptyState, QLabel#vgStatus { background:transparent; border:0; }"
         "QLabel#vgEmptyState { color:#c6c1d9; font-size:17px; line-height:1.6; }"
         "QLabel#vgStatus { color:#c6c1d9; padding:8px 0; }"
         "QPushButton#vgAddSubscription { background:#9274ff; color:#100b24; border:1px solid #9274ff; border-radius:14px; font-weight:600; }"
         "QPushButton#vgAddSubscription:hover { background:#a58cff; }"
         "QPushButton#vgAddSubscription:pressed { background:#8061ed; }"
         "QPushButton#vgAddSubscription:disabled { background:#292537; color:#b3a9ce; border-color:#39324c; }"
-        "QPushButton#vgAddSubscription:focus, QToolButton#vgAdvanced:focus { border:2px solid #60e8ff; }"
-        "QToolButton#vgAdvanced { color:#c6c1d9; background:transparent; border:1px solid #353044; border-radius:12px; padding:0 20px 0 14px; }"
-        "QToolButton#vgAdvanced:hover { background:#211c30; color:#ffffff; }"
+        "QPushButton#vgAddSubscription:focus { border:2px solid #60e8ff; }"
         "QTableView { background:#11101e; alternate-background-color:#11101e; color:#ffffff; border:1px solid #2a253b; border-radius:14px; selection-background-color:#252037; selection-color:#ffffff; }"
         "QTableView::item { padding:10px 16px; border-bottom:1px solid #211d31; }"
         "QHeaderView::section { background:#171425; color:#c6c1d9; border:0; padding:12px 16px; text-align:left; }"
@@ -324,7 +311,7 @@ void MainWindow::addVgVpnSubscription() {
                     if (group->Profiles().isEmpty()) {
                         QMessageBox::warning(self, QStringLiteral("Подписка не загружена"), QStringLiteral(
                             "Не удалось получить список серверов. Проверьте ссылку и подключение к интернету.\n\n"
-                            "Повторите добавление той же ссылки или обновите подписки в меню «Дополнительно»."));
+                            "Повторите добавление той же ссылки, чтобы загрузить подписку ещё раз."));
                     }
                     break;
                 }
